@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+.env
+rider_app/node_modules/
+rider_app/dist/
+rider_app/.next/
+*.db
