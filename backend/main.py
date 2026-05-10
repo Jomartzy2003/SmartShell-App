@@ -1,3 +1,4 @@
+from datetime import timezone
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, BackgroundTasks
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,8 +9,7 @@ import json
 import random
 from typing import List
 from sqlalchemy import Column, Integer, String, Float, DateTime
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, Mapped, mapped_column
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -28,7 +28,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-Base = declarative_base()
 
 def get_db():
     db = SessionLocal()
@@ -44,13 +43,6 @@ app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__
 def serve_dashboard():
     return FileResponse(os.path.join(os.path.dirname(__file__), "static", "index.html"))
 
-# Create DB schema
-try:
-    if os.path.exists("./smartshell.db"):
-        os.remove("./smartshell.db")
-    models.Base.metadata.create_all(bind=database.engine)
-except Exception as e:
-    print("Warning: Database creation failed -", e)
 
 class RegisterRequest(BaseModel):
     name: str
@@ -74,13 +66,20 @@ class VerifyRequest(BaseModel):
 class LoginRequest(BaseModel):
     mobile_number: str
 
-class Accident(Base):
+class Accident(database.Base):
     __tablename__ = "accidents"
-    id = Column(Integer, primary_key=True)
-    rider_name = Column(String)
-    latitude = Column(Float) 
-    longitude = Column(Float) 
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rider_name: Mapped[str] = mapped_column(String)
+    latitude: Mapped[float] = mapped_column(Float) 
+    longitude: Mapped[float] = mapped_column(Float) 
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+# Create DB schema
+try:
+    if os.path.exists("./smartshell.db"):
+        os.remove("./smartshell.db")
+    database.Base.metadata.create_all(bind=database.engine)
+except Exception as e:
+    print("Warning: Database creation failed -", e)
 
 class AccidentAlert(BaseModel):
     rider_name: str
