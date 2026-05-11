@@ -352,11 +352,11 @@
 
             const triggerCrashRoutine = () => {
                 setStatus('CRASH_COUNTDOWN');
-                setCountdown(10);
+                setCountdown(5);
                 if (recognition.current) {
                     try { recognition.current.start(); } catch (e) { } // ignore if already started
                 }
-                speak("Crash detected. Calling emergency contacts in 10 seconds. Say cancel to abort.");
+                speak("Crash detected. Calling emergency contacts in 5 seconds. Say cancel to abort.");
             };
 
             const cancelAlarm = () => {
