@@ -262,7 +262,7 @@
 
         function RiderAppScreen({ rider, onLogout }) {
             const [status, setStatus] = useState('SAFE'); // SAFE, CRASH_COUNTDOWN
-            const [countdown, setCountdown] = useState(10);
+            const [countdown, setCountdown] = useState(5);
             const ws = useRef(null);
             const recognition = useRef(null);
             const timerRef = useRef(null);
@@ -356,7 +356,6 @@
                 if (recognition.current) {
                     try { recognition.current.start(); } catch (e) { } // ignore if already started
                 }
-                speak("Crash detected. Calling emergency contacts in 5 seconds. Say cancel to abort.");
             };
 
             const cancelAlarm = () => {

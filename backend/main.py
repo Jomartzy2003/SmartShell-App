@@ -222,21 +222,26 @@ async def crash_countdown_task(rider_id: int, contacts: List[models.EmergencyCon
     await manager.broadcast_to_dashboards(json.dumps({"event": "ALERT_DISPATCHED", "rider_id": rider_id, "lat": lat, "lng": lng}))
 
 @app.post("/hardware_crash")
-async def trigger_hardware_crash(req: HardwareCrashRequest, background_tasks: BackgroundTasks, db: Session = Depends(database.get_db)):
+async def trigger_hardware_crash(req: HardwareCrashRequest, db: Session = Depends(database.get_db)):
     rider = db.query(models.Rider).filter(models.Rider.id == req.rider_id).first()
     if not rider:
         raise HTTPException(status_code=404, detail="Rider not found")
-        
-    contacts = db.query(models.EmergencyContact).filter(models.EmergencyContact.rider_id == req.rider_id).all()
     
     active_crashes[req.rider_id] = False
     
-    await manager.broadcast_to_riders(json.dumps({"event": "CRASH_DETECTED", "rider_id": req.rider_id}))
-    await manager.broadcast_to_dashboards(json.dumps({"event": "CRASH_DETECTED", "rider_id": req.rider_id}))
+    await manager.broadcast_to_riders(json.dumps({
+        "event": "CRASH_DETECTED", 
+        "rider_id": req.rider_id,
+        "countdown": 5
+    }))
     
-    background_tasks.add_task(crash_countdown_task, rider.id, contacts, req.latitude, req.longitude)
-    
-    return {"status": "Crash initiated and broadcasted"}
+    await manager.broadcast_to_dashboards(json.dumps({
+        "event": "CRASH_DETECTED", 
+        "rider_id": req.rider_id,
+        "rider_name": rider.name
+    }))
+
+    return {"status": "Visual alert triggered on app. Helmet handling notification."}
 
 @app.get("/contacts/{rider_id}")
 def get_contacts(rider_id: int, db: Session = Depends(database.get_db)):
