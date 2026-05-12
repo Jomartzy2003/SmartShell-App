@@ -250,6 +250,16 @@ def get_contacts(rider_id: int, db: Session = Depends(database.get_db)):
 
 @app.post("/contacts/{rider_id}")
 def add_contact(rider_id: int, req: ContactCreate, db: Session = Depends(database.get_db)):
+    existing_count = db.query(models.EmergencyContact).filter(
+        models.EmergencyContact.rider_id == rider_id
+    ).count()
+
+    if existing_count >= 3:
+        raise HTTPException(
+            status_code=400, 
+            detail="Contact limit reached. You can only have a maximum of 3 emergency contacts."
+        )
+
     new_contact = models.EmergencyContact(
         rider_id=rider_id,
         name=req.name,
@@ -258,7 +268,24 @@ def add_contact(rider_id: int, req: ContactCreate, db: Session = Depends(databas
     )
     db.add(new_contact)
     db.commit()
-    return {"id": new_contact.id, "name": new_contact.name, "phone_number": new_contact.phone_number, "priority": new_contact.priority}
+    db.refresh(new_contact)
+    return new_contact
+
+@app.put("/contacts/{contact_id}")
+def update_contact(contact_id: int, req: ContactCreate, db: Session = Depends(database.get_db)):
+    contact = db.query(models.EmergencyContact).filter(
+        models.EmergencyContact.id == contact_id
+    ).first()
+
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    contact.name = req.name
+    contact.phone_number = req.phone_number
+    contact.priority = req.priority
+
+    db.commit()
+    db.refresh(contact)
+    return {"message": "Contact updated successfully", "contact": contact}
 
 @app.delete("/contacts/{contact_id}")
 def delete_contact(contact_id: int, db: Session = Depends(database.get_db)):

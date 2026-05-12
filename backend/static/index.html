@@ -261,7 +261,7 @@
         }
 
         function RiderAppScreen({ rider, onLogout }) {
-            const [status, setStatus] = useState('SAFE'); // SAFE, CRASH_COUNTDOWN
+            const [status, setStatus] = useState('SAFE');
             const [countdown, setCountdown] = useState(5);
             const ws = useRef(null);
             const recognition = useRef(null);
@@ -269,6 +269,8 @@
             const [contacts, setContacts] = useState([]);
             const [newContactName, setNewContactName] = useState('');
             const [newContactPhone, setNewContactPhone] = useState('');
+            const [editingId, setEditingId] = useState(null);
+            const [editForm, setEditForm] = useState({ name: '', phone_number: '', priority: 1 });
 
             useEffect(() => {
                 if (rider && rider.id) {
@@ -280,23 +282,60 @@
             }, [rider]);
 
             const addContact = async () => {
+
                 if (!newContactName || !newContactPhone) return;
+
+
+                if (contacts.length >= 3) {
+                    alert("Maximum of 3 contacts allowed. Please delete one first.");
+                    return;
+                }
+
                 const res = await fetch(`${API_BASE}/contacts/${rider.id}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: newContactName, phone_number: newContactPhone, priority: 1 })
                 });
-                const data = await res.json();
-                setContacts([...contacts, data]);
-                setNewContactName('');
-                setNewContactPhone('');
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setContacts([...contacts, data]);
+                    setNewContactName('');
+                    setNewContactPhone('');
+                } else {
+                    const errorData = await res.json();
+                    alert(errorData.detail || "Failed to add contact");
+                }
+            };
+
+            const handleUpdate = async (id) => {
+                if (!editForm.name || !editForm.phone_number) return;
+                try {
+                    const res = await fetch(`${API_BASE}/contacts/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: editForm.name,
+                            phone_number: editForm.phone_number,
+                            priority: 1
+                        })
+                    });
+
+                    if (res.ok) {
+                        setEditingId(null);
+                        const updatedRes = await fetch(`${API_BASE}/contacts/${rider.id}`);
+                        const updatedData = await updatedRes.json();
+                        setContacts(updatedData);
+                    }
+                } catch (err) {
+                    console.error("Update Error:", err);
+                }
             };
 
             const deleteContact = async (id) => {
                 await fetch(`${API_BASE}/contacts/${id}`, { method: 'DELETE' });
                 setContacts(contacts.filter(c => c.id !== id));
             };
-
 
             useEffect(() => {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -434,7 +473,6 @@
             )
         }
 
-        // --- DASHBOARD APP (For Emergency Contacts) ---
         function DashboardScreen({ onNavigate }) {
             const [logs, setLogs] = useState([{ msg: 'Monitoring started', time: new Date(), type: 'info' }]);
             const [riderStatus, setRiderStatus] = useState('SAFE');
