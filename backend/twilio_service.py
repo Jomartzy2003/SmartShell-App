@@ -5,25 +5,20 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', 'mock_sid')
-TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', 'mock_token')
-TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', '+1234567890')
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', 'ACb9c4038dd24b10716cd46262e2e9069d')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', 'ac35c789c3f15065c553e892df23fb13')
+TWILIO_PHONE_NUMBER = 'whatsapp:+14155238886'
 
 def dispatch_sms(to_number: str, message_body: str):
-    if TWILIO_ACCOUNT_SID == 'mock_sid':
-        logger.info(f"[MOCK SMS] to {to_number}: {message_body}")
-        print(f"\n{'='*40}\n[MOCK SMS] to {to_number}:\n{message_body}\n{'='*40}\n")
-        return True
-    
     try:
         client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
         message = client.messages.create(
             body=message_body,
             from_=TWILIO_PHONE_NUMBER,
-            to=to_number
+            to=f"whatsapp:{to_number}"
         )
-        logger.info(f"SMS dispatched: {message.sid}")
+        logger.info(f"WhatsApp alert sent: {message.sid}")
         return True
     except Exception as e:
-        logger.error(f"Failed to send SMS: {e}")
+        logger.error(f"Failed to send alert: {e}")
         return False

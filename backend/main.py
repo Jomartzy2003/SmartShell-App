@@ -16,7 +16,9 @@ from pydantic import BaseModel
 from database import SessionLocal, engine
 import database
 import models
+
 import twilio_service
+from twilio_service import dispatch_sms
 
 app = FastAPI(title="SmartShell API")
 
@@ -227,12 +229,30 @@ async def trigger_hardware_crash(req: HardwareCrashRequest, db: Session = Depend
     if not rider:
         raise HTTPException(status_code=404, detail="Rider not found")
     
+    # 1. Generate the Verification Code
+    otp_code = str(random.randint(1000, 9999))
+    
+    # 2. Identify the location (using rider's stored place)
+    location = rider.place_in_binan_laguna if rider.place_in_binan_laguna else "Unknown Location"
+    
+    # 3. Get Emergency Contacts for this specific Rider
+    contacts = db.query(models.EmergencyContact).filter(models.EmergencyContact.rider_id == req.rider_id).all()
+    
+    # 4. Dispatch Real SMS to all verified contacts
+    sms_message = f"SMARTSHELL ALERT: {rider.name} crashed at {location}. Verification Code: {otp_code}"
+    
+    for contact in contacts:
+        # This will now use your real Twilio credentials
+        dispatch_sms(contact.phone_number, sms_message)
+
+    # Existing WebSocket logic for the app UI
     active_crashes[req.rider_id] = False
     
     await manager.broadcast_to_riders(json.dumps({
         "event": "CRASH_DETECTED", 
         "rider_id": req.rider_id,
-        "countdown": 5
+        "countdown": 5,
+        "verification_code": otp_code # Sending this to the app so it knows the right code
     }))
     
     await manager.broadcast_to_dashboards(json.dumps({
@@ -241,7 +261,11 @@ async def trigger_hardware_crash(req: HardwareCrashRequest, db: Session = Depend
         "rider_name": rider.name
     }))
 
-    return {"status": "Visual alert triggered on app. Helmet handling notification."}
+    return {
+        "status": "Success", 
+        "message": "SMS alerts sent to emergency contacts.",
+        "debug_code": otp_code # Helpful for you to see in the logs during the demo
+    }
 
 @app.get("/contacts/{rider_id}")
 def get_contacts(rider_id: int, db: Session = Depends(database.get_db)):
