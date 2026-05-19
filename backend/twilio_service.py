@@ -1,12 +1,15 @@
 import os
 from twilio.rest import Client
+from dotenv import load_dotenv
 import logging
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', 'ACb9c4038dd24b10716cd46262e2e9069d')
-TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', 'ac35c789c3f15065c553e892df23fb13')
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = 'whatsapp:+14155238886'
 
 def dispatch_sms(to_number: str, message_body: str):
